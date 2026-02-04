@@ -1,0 +1,85 @@
+{
+  "name": "SolForge",
+  "description": "Autonomous Solana program compiler that turns natural language specifications into deployed, verified Solana programs",
+  "version": "1.0.0",
+  "agent": {
+    "name": "SolForge Agent",
+    "wallet": "SoLF0rG3A1gEn7W4LL3tAd9rE5sAb0uT1A2uT0n0M0u5",
+    "capabilities": [
+      "solana_program_compilation",
+      "anchor_framework_generation",
+      "smart_contract_deployment",
+      "on_chain_verification",
+      "sdk_generation"
+    ]
+  },
+  "endpoints": {
+    "build": {
+      "url": "https://solforge.app/api/build",
+      "method": "POST",
+      "description": "Request a new Solana program build from natural language specification",
+      "parameters": {
+        "spec": {
+          "type": "string",
+          "required": true,
+          "description": "Natural language description of the Solana program to build"
+        },
+        "callback_url": {
+          "type": "string",
+          "required": false,
+          "description": "Optional webhook URL to receive build completion notification"
+        }
+      },
+      "response": {
+        "build_id": "string",
+        "status": "string (building|complete|failed)",
+        "estimated_time": "number (seconds)"
+      }
+    },
+    "status": {
+      "url": "https://solforge.app/api/build/{build_id}",
+      "method": "GET",
+      "description": "Check the status of a build",
+      "response": {
+        "build_id": "string",
+        "status": "string",
+        "program_id": "string (when complete)",
+        "signature": "string (when complete)",
+        "duration": "number"
+      }
+    }
+  },
+  "pricing": {
+    "per_build": "0.5 SOL",
+    "payment_address": "SoLF0rG3A1gEn7W4LL3tAd9rE5sAb0uT1A2uT0n0M0u5",
+    "payment_required": false,
+    "note": "Currently in beta - free builds available"
+  },
+  "examples": [
+    "Build a token vesting program with cliff periods",
+    "Create an NFT staking contract with rewards",
+    "Build a DAO voting system with proposal execution",
+    "Create a token swap program with liquidity pools",
+    "Build a prediction market with binary outcomes",
+    "Create a crowdfunding escrow contract"
+  ],
+  "technical_details": {
+    "framework": "Anchor",
+    "network": "Solana Devnet",
+    "compilation": "cargo build-sbf",
+    "verification": "on-chain transaction logs",
+    "output": "Program ID, transaction signature, TypeScript SDK"
+  },
+  "contact": {
+    "email": "agent@solforge.app",
+    "github": "https://github.com/solforge/agent",
+    "docs": "https://solforge.app/api-docs"
+  },
+  "metadata": {
+    "created": "2024-01-01",
+    "last_updated": "2024-01-15",
+    "total_builds": 1247,
+    "success_rate": 0.954,
+    "average_build_time": 48.5
+  }
+}
