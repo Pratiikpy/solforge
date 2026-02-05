@@ -44,26 +44,24 @@ export default function Home() {
   }, [terminalLines.length === 0]);
 
   useEffect(() => {
-    // Animate stats
-    const targets = { builds: 1247, programs: 1189, sol: 142.5 };
-    const duration = 2000;
-    const steps = 60;
-    const interval = duration / steps;
-
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      setStats({
-        builds: Math.floor(targets.builds * progress),
-        programs: Math.floor(targets.programs * progress),
-        sol: parseFloat((targets.sol * progress).toFixed(1)),
-      });
-
-      if (step >= steps) clearInterval(timer);
-    }, interval);
-
-    return () => clearInterval(timer);
+    // Fetch real stats from engine (or show defaults)
+    async function fetchStats() {
+      try {
+        const engineUrl = process.env.NEXT_PUBLIC_ENGINE_URL || 'http://localhost:3002';
+        const res = await fetch(`${engineUrl}/stats`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const data = await res.json();
+          setStats({
+            builds: data.totalBuilds || 0,
+            programs: data.programsDeployed || 0,
+            sol: data.solEarned || 0,
+          });
+        }
+      } catch {
+        // Engine not reachable — keep defaults (0)
+      }
+    }
+    fetchStats();
   }, []);
 
   return (
@@ -122,21 +120,21 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16 max-w-4xl mx-auto">
           <div className="glass-card-purple p-6 text-center">
             <div className="text-4xl font-bold text-matrix-purple mb-2">
-              {stats.builds.toLocaleString()}
+              {stats.builds > 0 ? stats.builds.toLocaleString() : '✅'}
             </div>
-            <div className="text-gray-400">Builds Completed</div>
+            <div className="text-gray-400">{stats.builds > 0 ? 'Builds Completed' : 'Devnet Deployed'}</div>
           </div>
           <div className="glass-card p-6 text-center">
             <div className="text-4xl font-bold text-matrix-green mb-2">
-              {stats.programs.toLocaleString()}
+              {stats.programs > 0 ? stats.programs.toLocaleString() : '9/9'}
             </div>
-            <div className="text-gray-400">Programs Deployed</div>
+            <div className="text-gray-400">{stats.programs > 0 ? 'Programs Deployed' : 'Tests Passing'}</div>
           </div>
           <div className="glass-card-purple p-6 text-center">
             <div className="text-4xl font-bold text-matrix-purple mb-2">
-              {stats.sol} SOL
+              {stats.sol > 0 ? `${stats.sol} SOL` : '🔓'}
             </div>
-            <div className="text-gray-400">Earned by Agent</div>
+            <div className="text-gray-400">{stats.sol > 0 ? 'Earned by Agent' : 'Open Source'}</div>
           </div>
         </div>
 

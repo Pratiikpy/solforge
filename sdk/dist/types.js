@@ -5,12 +5,12 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SolForgeError = void 0;
+/** SolForge error */
 class SolForgeError extends Error {
-    constructor(message, code, statusCode, details) {
+    constructor(message, code, logs) {
         super(message);
         this.code = code;
-        this.statusCode = statusCode;
-        this.details = details;
+        this.logs = logs;
         this.name = 'SolForgeError';
     }
 }

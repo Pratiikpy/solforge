@@ -1,62 +1,113 @@
 /**
- * Example: Request a build
+ * Example: Request a build using the SolForge SDK
  */
 
-import { SolForgeClient } from '../src';
+import { SolForgeClient, StepType, BuildStatus } from '@solforge/sdk';
+import { Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 
 async function main() {
-  // Initialize client
+  // Initialize the SDK client
   const client = new SolForgeClient({
-    endpoint: 'https://solforge.dev/api',
-    // apiKey: 'your-api-key', // Optional
+    rpcUrl: 'https://api.devnet.solana.com',
+    commitment: 'confirmed',
   });
 
-  // Define your program specification
+  // For this example, we'll generate a new keypair
+  // In production, you'd load your keypair from a file
+  const requester = Keypair.generate();
+  
+  console.log('Requester:', requester.publicKey.toBase58());
+  console.log('⚠️  Make sure this account has SOL on devnet!');
+  console.log();
+
+  // Define the program spec
   const spec = `
-Build a token vesting program with the following features:
-- Linear vesting schedule with configurable start and end dates
-- Cliff period support (no tokens released before cliff)
-- Multiple beneficiaries with individual schedules
-- Admin can revoke vesting (tokens return to treasury)
-- Partial withdrawals allowed after cliff
-- Events emitted for vesting schedule creation and withdrawals
-`;
+    Create a simple counter program with:
+    - initialize: Set up the counter
+    - increment: Add 1 to the counter
+    - decrement: Subtract 1 from the counter
+    - get: Return the current value
+  `.trim();
+
+  console.log('Requesting build...');
+  console.log('Spec:', spec);
+  console.log();
 
   try {
-    console.log('Requesting build...');
-    const build = await client.requestBuild(spec, {
-      budget: 0.1, // 0.1 SOL
-      network: 'devnet',
+    // Request the build
+    const { signature, buildRequestPda, buildId } = await client.requestBuild({
+      requester,
+      spec,
+      budgetLamports: new BN(0.5 * LAMPORTS_PER_SOL), // 0.5 SOL
     });
 
-    console.log('Build requested successfully!');
-    console.log('Build ID:', build.id);
-    console.log('Status:', build.status);
-    console.log('Estimated completion:', build.estimatedCompletion);
+    console.log('✅ Build requested successfully!');
+    console.log('  Transaction:', signature);
+    console.log('  Build ID:', buildId.toString());
+    console.log('  Build Request PDA:', buildRequestPda.toBase58());
+    console.log();
 
-    if (build.paymentTx) {
-      console.log('Payment transaction:', build.paymentTx);
-    }
+    // Fetch the build request to confirm
+    const buildRequest = await client.getBuildRequest(buildRequestPda);
+    console.log('Build Request Details:');
+    console.log('  Requester:', buildRequest.requester.toBase58());
+    console.log('  Budget:', buildRequest.budget.toString(), 'lamports');
+    console.log('  Status:', Object.keys(buildRequest.status)[0]);
+    console.log('  Created:', new Date(buildRequest.createdAt.toNumber() * 1000).toISOString());
+    console.log();
 
-    // Now you can stream the build progress
-    console.log('\nStreaming build events...');
-    for await (const event of client.streamBuild(build.id)) {
-      console.log(`[${event.type}]`, event.data);
-
-      if (event.type === 'complete') {
-        console.log('\n✅ Build completed!');
-        console.log('Program ID:', event.data.programId);
-        break;
+    // Monitor for changes
+    console.log('Monitoring build status (polling every 5 seconds)...');
+    let currentStepCount = 0;
+    
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      const updated = await client.getBuildRequest(buildRequestPda);
+      const status = Object.keys(updated.status)[0];
+      
+      // Check for new steps
+      if (updated.stepCount > currentStepCount) {
+        for (let i = currentStepCount; i < updated.stepCount; i++) {
+          const step = await client.getBuildStep(buildRequestPda, i);
+          console.log(`  [Step ${i + 1}] ${step.description}`);
+        }
+        currentStepCount = updated.stepCount;
       }
-
-      if (event.type === 'error') {
-        console.error('\n❌ Build failed:', event.data);
+      
+      // Check if complete
+      if (status === 'completed') {
+        console.log();
+        console.log('✅ Build completed successfully!');
+        if (updated.deployedProgramId) {
+          console.log('  Deployed Program ID:', updated.deployedProgramId);
+        }
         break;
+      } else if (status === 'failed') {
+        console.log();
+        console.log('❌ Build failed');
+        break;
+      } else if (status === 'inProgress') {
+        if (!updated.builder) {
+          console.log('  Status: Claimed by builder', updated.builder?.toBase58());
+        }
       }
     }
   } catch (error) {
     console.error('Error:', error);
+    process.exit(1);
   }
 }
 
-main();
+// Run if this is the main module
+if (require.main === module) {
+  main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+}
+
+export { main };

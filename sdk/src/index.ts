@@ -1,17 +1,47 @@
 /**
- * @solforge/sdk
- * TypeScript SDK for SolForge — Autonomous Program Compiler for Solana
- * 
- * @example
- * ```typescript
- * import { SolForgeClient } from '@solforge/sdk';
- * 
- * const client = new SolForgeClient();
- * const build = await client.requestBuild('Build a token vesting program');
- * console.log('Build ID:', build.id);
- * ```
+ * SolForge SDK
+ * Anchor-based SDK for the SolForge autonomous program compiler
+ * @module @solforge/sdk
  */
 
+// Main client
 export { SolForgeClient } from './client';
-export * from './types';
-export * from './constants';
+
+// PDA helpers
+export {
+  findProtocolStatePda,
+  findBuildRequestPda,
+  findEscrowPda,
+  findBuilderProfilePda,
+  findBuildStepPda,
+} from './pda';
+
+// Constants
+export {
+  SOLFORGE_PROGRAM_ID,
+  SEEDS,
+  BuildStatus,
+  StepType,
+  RPC_ENDPOINTS,
+} from './constants';
+
+// Types
+export type {
+  BuildStatusVariant,
+  StepTypeVariant,
+  ProtocolState,
+  BuildRequest,
+  BuilderProfile,
+  BuildStep,
+  SolForgeClientConfig,
+  InitializeOptions,
+  RegisterBuilderOptions,
+  RequestBuildOptions,
+  ClaimBuildOptions,
+  LogBuildStepOptions,
+  CompleteBuildOptions,
+  GetAllBuildsFilter,
+  StreamBuildEvent,
+} from './types';
+
+export { SolForgeError } from './types';

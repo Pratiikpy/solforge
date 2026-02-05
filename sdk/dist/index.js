@@ -1,35 +1,28 @@
 "use strict";
 /**
- * @solforge/sdk
- * TypeScript SDK for SolForge — Autonomous Program Compiler for Solana
- *
- * @example
- * ```typescript
- * import { SolForgeClient } from '@solforge/sdk';
- *
- * const client = new SolForgeClient();
- * const build = await client.requestBuild('Build a token vesting program');
- * console.log('Build ID:', build.id);
- * ```
+ * SolForge SDK
+ * Anchor-based SDK for the SolForge autonomous program compiler
+ * @module @solforge/sdk
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SolForgeClient = void 0;
+exports.SolForgeError = exports.RPC_ENDPOINTS = exports.StepType = exports.BuildStatus = exports.SEEDS = exports.SOLFORGE_PROGRAM_ID = exports.findBuildStepPda = exports.findBuilderProfilePda = exports.findEscrowPda = exports.findBuildRequestPda = exports.findProtocolStatePda = exports.SolForgeClient = void 0;
+// Main client
 var client_1 = require("./client");
 Object.defineProperty(exports, "SolForgeClient", { enumerable: true, get: function () { return client_1.SolForgeClient; } });
-__exportStar(require("./types"), exports);
-__exportStar(require("./constants"), exports);
+// PDA helpers
+var pda_1 = require("./pda");
+Object.defineProperty(exports, "findProtocolStatePda", { enumerable: true, get: function () { return pda_1.findProtocolStatePda; } });
+Object.defineProperty(exports, "findBuildRequestPda", { enumerable: true, get: function () { return pda_1.findBuildRequestPda; } });
+Object.defineProperty(exports, "findEscrowPda", { enumerable: true, get: function () { return pda_1.findEscrowPda; } });
+Object.defineProperty(exports, "findBuilderProfilePda", { enumerable: true, get: function () { return pda_1.findBuilderProfilePda; } });
+Object.defineProperty(exports, "findBuildStepPda", { enumerable: true, get: function () { return pda_1.findBuildStepPda; } });
+// Constants
+var constants_1 = require("./constants");
+Object.defineProperty(exports, "SOLFORGE_PROGRAM_ID", { enumerable: true, get: function () { return constants_1.SOLFORGE_PROGRAM_ID; } });
+Object.defineProperty(exports, "SEEDS", { enumerable: true, get: function () { return constants_1.SEEDS; } });
+Object.defineProperty(exports, "BuildStatus", { enumerable: true, get: function () { return constants_1.BuildStatus; } });
+Object.defineProperty(exports, "StepType", { enumerable: true, get: function () { return constants_1.StepType; } });
+Object.defineProperty(exports, "RPC_ENDPOINTS", { enumerable: true, get: function () { return constants_1.RPC_ENDPOINTS; } });
+var types_1 = require("./types");
+Object.defineProperty(exports, "SolForgeError", { enumerable: true, get: function () { return types_1.SolForgeError; } });
 //# sourceMappingURL=index.js.map

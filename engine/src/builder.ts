@@ -5,11 +5,7 @@ import { compile } from './compiler';
 import { runTests } from './tester';
 import { deploy } from './deployer';
 import { generateSDK } from './sdk-gen';
-import {
-  logBuildStart,
-  logBuildComplete,
-  logBuildError
-} from './chain-logger';
+import { createBuildLogger, ChainLogResult } from './chain-logger';
 import { randomBytes } from 'crypto';
 
 export async function executeBuild(
@@ -20,21 +16,40 @@ export async function executeBuild(
   const logs: string[] = [];
   let workspacePath: string | null = null;
   let projectPath: string | null = null;
+  
+  // Create on-chain logger for this build
+  const chainLogger = createBuildLogger();
+  const chainTxs: ChainLogResult[] = [];
+
+  function emitChain(result: ChainLogResult | null, label: string) {
+    if (result) {
+      chainTxs.push(result);
+      onEvent({
+        type: 'chain',
+        label,
+        txSignature: result.txSignature,
+        explorerUrl: result.explorerUrl,
+      } as any);
+    }
+  }
 
   try {
-    // Log build start
-    await logBuildStart(buildId, spec);
-    logs.push(`Build started: ${buildId}`);
-
-    // Step 1: Create temp workspace
+    // Step 1: Request build on-chain (escrow SOL)
     onEvent({
       type: 'progress',
       step: 1,
       total: 7,
-      description: 'Creating workspace...'
+      description: 'Registering build on Solana...'
     });
-    workspacePath = await createTempWorkspace();
-    logs.push(`Workspace created: ${workspacePath}`);
+    
+    const requestResult = await chainLogger.requestBuild(spec);
+    emitChain(requestResult, 'Build Requested');
+    
+    // Claim the build
+    const claimResult = await chainLogger.claimBuild();
+    emitChain(claimResult, 'Build Claimed');
+    
+    logs.push(`Build ${buildId} registered on-chain`);
 
     // Step 2: Generate code with Claude
     onEvent({
@@ -45,6 +60,10 @@ export async function executeBuild(
     });
     
     const { programCode, testCode, programName } = await generateCode(spec);
+    
+    // Log analysis step on-chain
+    const analyzeResult = await chainLogger.logStep('analyze', `Analyzed: ${spec.substring(0, 150)}`, spec);
+    emitChain(analyzeResult, 'Analysis Logged');
     
     onEvent({
       type: 'code',
@@ -58,6 +77,10 @@ export async function executeBuild(
       content: testCode
     });
     
+    // Log code generation on-chain
+    const codeResult = await chainLogger.logStep('generateCode', `Generated ${programName} (${programCode.length} chars)`, programCode);
+    emitChain(codeResult, 'Code Generation Logged');
+    
     logs.push(`Generated program: ${programName}`);
 
     // Step 3: Write files to workspace
@@ -68,6 +91,7 @@ export async function executeBuild(
       description: 'Setting up Anchor project...'
     });
     
+    workspacePath = await createTempWorkspace();
     const workspaceInfo = await writeAnchorProject(
       workspacePath,
       programName,
@@ -92,9 +116,17 @@ export async function executeBuild(
       output: buildResult.stdout + buildResult.stderr
     });
 
+    // Log compile step on-chain
+    const compileContent = buildResult.stdout + buildResult.stderr;
+    const compileResult = await chainLogger.logStep('compile', 
+      buildResult.success ? 'Compilation successful' : 'Compilation failed',
+      compileContent
+    );
+    emitChain(compileResult, 'Compilation Logged');
+
     if (!buildResult.success) {
       logs.push('Build failed');
-      await logBuildError(buildId, 'compile', buildResult.error || 'Unknown error');
+      await chainLogger.completeBuild(null, false);
       
       return {
         success: false,
@@ -105,7 +137,7 @@ export async function executeBuild(
     
     logs.push('Build successful');
 
-    // Step 5: Run tests (optional, non-blocking)
+    // Step 5: Run tests
     onEvent({
       type: 'progress',
       step: 5,
@@ -119,6 +151,14 @@ export async function executeBuild(
       type: 'terminal',
       output: testResult.stdout + testResult.stderr
     });
+    
+    // Log test step on-chain
+    const testContent = testResult.stdout + testResult.stderr;
+    const testLogResult = await chainLogger.logStep('test',
+      testResult.success ? 'All tests passed' : 'Tests completed with issues',
+      testContent
+    );
+    emitChain(testLogResult, 'Tests Logged');
     
     if (testResult.success) {
       logs.push('Tests passed');
@@ -143,7 +183,10 @@ export async function executeBuild(
 
     if (!deployResult.success || !deployResult.programId) {
       logs.push('Deployment failed');
-      await logBuildError(buildId, 'deploy', deployResult.error || 'Unknown error');
+      
+      // Log deploy failure on-chain
+      await chainLogger.logStep('deploy', 'Deployment failed', deployResult.stderr || 'Unknown error');
+      await chainLogger.completeBuild(null, false);
       
       return {
         success: false,
@@ -153,6 +196,14 @@ export async function executeBuild(
     }
     
     const programId = deployResult.programId;
+    
+    // Log deploy step on-chain
+    const deployLogResult = await chainLogger.logStep('deploy', 
+      `Deployed to devnet: ${programId}`,
+      `Program ID: ${programId}\n${deployResult.stdout}`
+    );
+    emitChain(deployLogResult, 'Deployment Logged');
+    
     logs.push(`Deployed to devnet: ${programId}`);
 
     // Step 7: Generate SDK
@@ -166,16 +217,21 @@ export async function executeBuild(
     const sdk = await generateSDK(programName, programId, programCode);
     logs.push('SDK generated');
 
-    // Log completion
-    await logBuildComplete(buildId, programId, programName);
+    // Complete build on-chain (releases escrow)
+    const completeResult = await chainLogger.completeBuild(programId, true);
+    emitChain(completeResult, 'Build Completed');
 
-    // Send complete event
+    // Send complete event with all chain transactions
     onEvent({
       type: 'complete',
       programId,
       programName,
-      sdk
-    });
+      sdk,
+      chainTxs: chainTxs.map(t => ({
+        signature: t.txSignature,
+        explorer: t.explorerUrl,
+      })),
+    } as any);
 
     logs.push('Build complete!');
 
@@ -191,7 +247,10 @@ export async function executeBuild(
     const errorMsg = error.message || String(error);
     logs.push(`Error: ${errorMsg}`);
     
-    await logBuildError(buildId, 'unknown', errorMsg);
+    // Try to mark build as failed on-chain
+    try {
+      await chainLogger.completeBuild(null, false);
+    } catch {}
     
     onEvent({
       type: 'error',
@@ -203,10 +262,5 @@ export async function executeBuild(
       error: errorMsg,
       logs
     };
-  } finally {
-    // Cleanup workspace (optional, keep for debugging)
-    // if (workspacePath) {
-    //   await cleanupWorkspace(workspacePath);
-    // }
   }
 }

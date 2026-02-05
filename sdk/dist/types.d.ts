@@ -2,138 +2,158 @@
  * SolForge SDK Types
  * @module @solforge/sdk
  */
-export interface SolForgeConfig {
-    /** API endpoint (default: https://solforge.dev/api) */
-    endpoint: string;
-    /** Optional API key for authenticated requests */
-    apiKey?: string;
-    /** Request timeout in milliseconds (default: 30000) */
-    timeout?: number;
+import { PublicKey } from '@solana/web3.js';
+import BN from 'bn.js';
+/** Build status variants */
+export type BuildStatusVariant = {
+    pending: {};
+} | {
+    inProgress: {};
+} | {
+    completed: {};
+} | {
+    failed: {};
+};
+/** Step type variants */
+export type StepTypeVariant = {
+    analyze: {};
+} | {
+    generateCode: {};
+} | {
+    compile: {};
+} | {
+    test: {};
+} | {
+    deploy: {};
+} | {
+    generateSdk: {};
+} | {
+    document: {};
+};
+/** Protocol state account */
+export interface ProtocolState {
+    admin: PublicKey;
+    feeBps: number;
+    buildCount: BN;
+    totalBuildsCompleted: BN;
+    totalSolEarned: BN;
+    bump: number;
 }
-export interface BuildOptions {
-    /** SOL amount to pay for the build (default: 0.1) */
-    budget?: number;
-    /** Network to deploy to (default: devnet) */
-    network?: 'devnet' | 'mainnet-beta';
-    /** Callback URL for build completion notifications */
-    webhookUrl?: string;
-    /** Additional metadata */
-    metadata?: Record<string, any>;
-}
+/** Build request account */
 export interface BuildRequest {
-    /** Unique build ID */
-    id: string;
-    /** Build specification */
+    id: BN;
+    requester: PublicKey;
+    builder: PublicKey | null;
     spec: string;
-    /** Current status */
-    status: BuildStatus['status'];
-    /** Creation timestamp */
-    createdAt: string;
-    /** Estimated completion time */
-    estimatedCompletion?: string;
-    /** Payment transaction signature */
-    paymentTx?: string;
+    budget: BN;
+    status: BuildStatusVariant;
+    createdAt: BN;
+    completedAt: BN;
+    deployedProgramId: string | null;
+    stepCount: number;
+    bump: number;
 }
-export interface BuildStatus {
-    /** Build ID */
-    id: string;
-    /** Current status */
-    status: 'pending' | 'analyzing' | 'generating' | 'compiling' | 'testing' | 'deploying' | 'completed' | 'failed';
-    /** Current step (0-7) */
-    currentStep: number;
-    /** Total steps */
-    totalSteps: number;
-    /** Progress percentage (0-100) */
-    progress: number;
-    /** Status message */
-    message: string;
-    /** Deployed program address (if completed) */
+/** Builder profile account */
+export interface BuilderProfile {
+    authority: PublicKey;
+    buildsCompleted: BN;
+    buildsFailed: BN;
+    totalEarned: BN;
+    registeredAt: BN;
+    active: boolean;
+    bump: number;
+}
+/** Build step account */
+export interface BuildStep {
+    buildId: BN;
+    stepNumber: number;
+    stepType: StepTypeVariant;
+    description: string;
+    contentHash: number[];
+    timestamp: BN;
+}
+/** Client configuration */
+export interface SolForgeClientConfig {
+    /** RPC endpoint URL */
+    rpcUrl?: string;
+    /** Commitment level */
+    commitment?: 'processed' | 'confirmed' | 'finalized';
+    /** Program ID (defaults to devnet deployment) */
+    programId?: PublicKey;
+}
+/** Initialize options */
+export interface InitializeOptions {
+    /** Admin keypair */
+    admin: any;
+    /** Protocol fee in basis points (0-10000) */
+    feeBps: number;
+}
+/** Register builder options */
+export interface RegisterBuilderOptions {
+    /** Admin keypair */
+    admin: any;
+    /** Builder authority public key */
+    builderAuthority: PublicKey;
+}
+/** Request build options */
+export interface RequestBuildOptions {
+    /** Requester keypair */
+    requester: any;
+    /** Build specification (max 500 chars) */
+    spec: string;
+    /** Budget in lamports */
+    budgetLamports: BN | number;
+}
+/** Claim build options */
+export interface ClaimBuildOptions {
+    /** Builder keypair */
+    builder: any;
+    /** Build request PDA */
+    buildRequestPda: PublicKey;
+}
+/** Log build step options */
+export interface LogBuildStepOptions {
+    /** Builder keypair */
+    builder: any;
+    /** Build request PDA */
+    buildRequestPda: PublicKey;
+    /** Step type */
+    stepType: StepTypeVariant;
+    /** Step description (max 200 chars) */
+    description: string;
+    /** Content hash (32 bytes) */
+    contentHash: Buffer | number[];
+}
+/** Complete build options */
+export interface CompleteBuildOptions {
+    /** Builder keypair */
+    builder: any;
+    /** Build request PDA */
+    buildRequestPda: PublicKey;
+    /** Deployed program ID (if successful) */
     programId?: string;
-    /** Build artifacts */
-    artifacts?: {
-        sourceCode?: string;
-        idl?: any;
-        testResults?: string;
-    };
-    /** Error details (if failed) */
-    error?: {
-        code: string;
-        message: string;
-        details?: any;
-    };
-    /** Creation timestamp */
-    createdAt: string;
-    /** Completion timestamp */
-    completedAt?: string;
+    /** Whether the build succeeded */
+    success: boolean;
 }
-export interface BuildEvent {
-    /** Event type */
-    type: 'status' | 'log' | 'artifact' | 'complete' | 'error';
-    /** Event timestamp */
-    timestamp: string;
-    /** Event data */
-    data: any;
-}
-export interface ListOptions {
-    /** Maximum number of results (default: 50) */
-    limit?: number;
-    /** Offset for pagination */
-    offset?: number;
+/** Get all builds filter */
+export interface GetAllBuildsFilter {
+    /** Filter by requester */
+    requester?: PublicKey;
+    /** Filter by builder */
+    builder?: PublicKey;
     /** Filter by status */
-    status?: BuildStatus['status'];
-    /** Sort order (default: desc) */
-    order?: 'asc' | 'desc';
+    status?: BuildStatusVariant;
 }
-export interface BuildRecord {
-    /** Build ID */
-    id: string;
-    /** Build specification */
-    spec: string;
-    /** Current status */
-    status: BuildStatus['status'];
-    /** Program ID (if deployed) */
-    programId?: string;
-    /** Creation timestamp */
-    createdAt: string;
-    /** Completion timestamp */
-    completedAt?: string;
+/** Stream build event */
+export interface StreamBuildEvent {
+    type: 'step' | 'complete' | 'error';
+    data: any;
+    timestamp: string;
 }
-export interface VerificationResult {
-    /** Whether the proof is valid */
-    valid: boolean;
-    /** On-chain transaction signature */
-    signature: string;
-    /** Proof data */
-    proof: {
-        buildId: string;
-        stepNumber: number;
-        stepName: string;
-        hash: string;
-        timestamp: number;
-    };
-    /** Verification timestamp */
-    verifiedAt: string;
-}
-export interface ProgramInfo {
-    /** Program address */
-    programId: string;
-    /** Network */
-    network: string;
-    /** IDL (Interface Definition Language) */
-    idl: any;
-    /** Source code URL */
-    sourceUrl?: string;
-    /** Deployment transaction */
-    deploymentTx: string;
-    /** Deployment timestamp */
-    deployedAt: string;
-    /** Program metadata */
-    metadata?: Record<string, any>;
-}
+/** SolForge error */
 export declare class SolForgeError extends Error {
-    code: string;
-    statusCode?: number | undefined;
-    details?: any | undefined;
-    constructor(message: string, code: string, statusCode?: number | undefined, details?: any | undefined);
+    code?: number | undefined;
+    logs?: string[] | undefined;
+    constructor(message: string, code?: number | undefined, logs?: string[] | undefined);
 }
 //# sourceMappingURL=types.d.ts.map
