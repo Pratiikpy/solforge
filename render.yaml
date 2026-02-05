@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: solforge-engine
+    runtime: docker
+    dockerfilePath: ./engine/Dockerfile
+    dockerContext: ./engine
+    region: oregon
+    plan: free
+    envVars:
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: SOLANA_KEYPAIR_JSON
+        sync: false
+      - key: SOLANA_IDL_JSON
+        sync: false
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
+      - key: BUILD_MODE
+        value: demo
+      - key: PORT
+        value: 3002
+    healthCheckPath: /health

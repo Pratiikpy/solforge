@@ -9,8 +9,8 @@ import crypto from 'crypto';
 type AnyProgram = Program<any>;
 
 const PROGRAM_ID = new PublicKey('5mZkFVLzZKcKLxPT7LqjLMti2rNWN5ybYazxhsQDAoJL');
-const DEPLOY_KEY_PATH = path.resolve(__dirname, '../../deploy-key.json');
-const IDL_PATH = path.resolve(__dirname, '../../target/idl/solforge.json');
+const DEPLOY_KEY_PATH = process.env.SOLANA_KEYPAIR_PATH || path.resolve(__dirname, '../../deploy-key.json');
+const IDL_PATH = process.env.SOLANA_IDL_PATH || path.resolve(__dirname, '../../target/idl/solforge.json');
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
 const BUILD_BUDGET = 0.01 * LAMPORTS_PER_SOL; // 0.01 SOL per build
 
@@ -50,16 +50,23 @@ function loadProgram(): AnyProgram | null {
   if (program) return program;
   
   try {
-    if (!fs.existsSync(DEPLOY_KEY_PATH)) {
-      console.warn('[chain-logger] Deploy key not found at', DEPLOY_KEY_PATH);
+    // Load keypair: from SOLANA_KEYPAIR_JSON env var, or from file
+    let keyData: number[];
+    if (process.env.SOLANA_KEYPAIR_JSON) {
+      keyData = JSON.parse(process.env.SOLANA_KEYPAIR_JSON);
+    } else if (fs.existsSync(DEPLOY_KEY_PATH)) {
+      keyData = JSON.parse(fs.readFileSync(DEPLOY_KEY_PATH, 'utf-8'));
+    } else {
+      console.warn('[chain-logger] No keypair found (set SOLANA_KEYPAIR_JSON or SOLANA_KEYPAIR_PATH)');
       return null;
     }
-    if (!fs.existsSync(IDL_PATH)) {
+
+    // Load IDL: from SOLANA_IDL_JSON env var, or from file
+    if (!process.env.SOLANA_IDL_JSON && !fs.existsSync(IDL_PATH)) {
       console.warn('[chain-logger] IDL not found at', IDL_PATH);
       return null;
     }
 
-    const keyData = JSON.parse(fs.readFileSync(DEPLOY_KEY_PATH, 'utf-8'));
     wallet = Keypair.fromSecretKey(Uint8Array.from(keyData));
     
     const connection = new Connection(RPC_URL, 'confirmed');
@@ -69,7 +76,8 @@ function loadProgram(): AnyProgram | null {
       preflightCommitment: 'confirmed',
     });
 
-    const idl = JSON.parse(fs.readFileSync(IDL_PATH, 'utf-8'));
+    const idlStr = process.env.SOLANA_IDL_JSON || fs.readFileSync(IDL_PATH, 'utf-8');
+    const idl = typeof idlStr === 'string' ? JSON.parse(idlStr) : idlStr;
     program = new Program(idl, provider);
     
     console.log('[chain-logger] ✅ Loaded program:', PROGRAM_ID.toBase58());
