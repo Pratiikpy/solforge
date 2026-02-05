@@ -51,12 +51,12 @@ export async function executeBuild(
     
     logs.push(`Build ${buildId} registered on-chain`);
 
-    // Step 2: Generate code with Claude
+    // Step 2: Generate code with Kimi K2
     onEvent({
       type: 'progress',
       step: 2,
       total: 7,
-      description: 'Analyzing spec with Claude AI...'
+      description: 'Analyzing spec with Kimi 2.5 AI...'
     });
     
     const { programCode, testCode, programName } = await generateCode(spec);

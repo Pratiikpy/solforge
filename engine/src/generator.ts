@@ -1,9 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { GeneratedCode } from './types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
+const NVIDIA_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const MODEL = 'moonshotai/kimi-k2-instruct';
+
+function getApiKey(): string {
+  const key = process.env.NVIDIA_API_KEY;
+  if (!key) throw new Error('NVIDIA_API_KEY not set in environment');
+  return key;
+}
 
 const SYSTEM_PROMPT = `You are an expert Solana Anchor program developer. Generate MINIMAL, COMPILABLE Anchor programs.
 
@@ -22,28 +26,50 @@ Always respond with a JSON object:
   "testCode": "complete TypeScript test file"
 }`;
 
-export async function generateCode(spec: string): Promise<GeneratedCode> {
-  console.log('Generating code with Claude...');
-
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 8000,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: `Generate a complete, compilable Anchor program for this specification:\n\n${spec}\n\nRespond ONLY with valid JSON, no markdown formatting.`
-      }
-    ]
+async function callKimi(messages: { role: string; content: string }[], maxTokens = 16384): Promise<string> {
+  const res = await fetch(NVIDIA_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getApiKey()}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      max_tokens: maxTokens,
+      temperature: 0.7,
+      top_p: 0.95,
+      stream: false,
+    }),
   });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`NVIDIA API error ${res.status}: ${errText}`);
   }
 
-  let jsonText = content.text.trim();
-  
+  const data = await res.json() as any;
+  const choice = data.choices?.[0];
+  if (!choice?.message?.content) {
+    throw new Error('No content in NVIDIA API response');
+  }
+  return choice.message.content;
+}
+
+export async function generateCode(spec: string): Promise<GeneratedCode> {
+  console.log('Generating code with Kimi 2.5...');
+
+  const text = await callKimi([
+    { role: 'system', content: SYSTEM_PROMPT },
+    {
+      role: 'user',
+      content: `Generate a complete, compilable Anchor program for this specification:\n\n${spec}\n\nRespond ONLY with valid JSON, no markdown formatting.`
+    }
+  ], 8000);
+
+  let jsonText = text.trim();
+
   // Remove markdown code blocks if present
   if (jsonText.startsWith('```')) {
     jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
@@ -52,13 +78,13 @@ export async function generateCode(spec: string): Promise<GeneratedCode> {
   const parsed = JSON.parse(jsonText);
 
   if (!parsed.programName || !parsed.programCode || !parsed.testCode) {
-    throw new Error('Invalid response structure from Claude');
+    throw new Error('Invalid response structure from Kimi');
   }
 
   return {
     programName: parsed.programName,
     programCode: parsed.programCode,
-    testCode: parsed.testCode
+    testCode: parsed.testCode,
   };
 }
 
@@ -67,29 +93,20 @@ export async function generateSDKCode(
   programId: string,
   programCode: string
 ): Promise<string> {
-  console.log('Generating TypeScript SDK...');
+  console.log('Generating TypeScript SDK with Kimi 2.5...');
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 4000,
-    messages: [
-      {
-        role: 'user',
-        content: `Given this Anchor program code:\n\n${programCode}\n\nProgram ID: ${programId}\n\nGenerate a clean, typed TypeScript SDK for interacting with this program. Include:
+  const text = await callKimi([
+    {
+      role: 'user',
+      content: `Given this Anchor program code:\n\n${programCode}\n\nProgram ID: ${programId}\n\nGenerate a clean, typed TypeScript SDK for interacting with this program. Include:
 - Program initialization
 - Type-safe instruction builders
 - Account fetching helpers
 - Proper imports from @coral-xyz/anchor and @solana/web3.js
 
 Respond with ONLY the TypeScript SDK code, no explanations.`
-      }
-    ]
-  });
+    }
+  ], 4000);
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
-  }
-
-  return content.text.trim();
+  return text.trim();
 }

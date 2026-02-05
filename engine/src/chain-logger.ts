@@ -8,7 +8,7 @@ import crypto from 'crypto';
 // Use 'any' typed program to avoid IDL generics issues with Anchor 0.32+
 type AnyProgram = Program<any>;
 
-const PROGRAM_ID = new PublicKey('G45nBxWsUgxZsu9YTEt9QqHEsxtdc495xqnTR5SRwUAC');
+const PROGRAM_ID = new PublicKey('5mZkFVLzZKcKLxPT7LqjLMti2rNWN5ybYazxhsQDAoJL');
 const DEPLOY_KEY_PATH = path.resolve(__dirname, '../../deploy-key.json');
 const IDL_PATH = path.resolve(__dirname, '../../target/idl/solforge.json');
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';

@@ -22,13 +22,13 @@ Keep it minimal and compilable.
 async function test() {
   console.log('🧪 Testing SolForge Engine...\n');
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('❌ ANTHROPIC_API_KEY not set in .env');
+  if (!process.env.NVIDIA_API_KEY) {
+    console.error('❌ NVIDIA_API_KEY not set in .env');
     console.error('Add your API key to .env file');
     process.exit(1);
   }
 
-  console.log('✓ API key found');
+  console.log('✓ NVIDIA API key found');
   console.log('✓ Starting build test\n');
 
   const events: BuildEvent[] = [];

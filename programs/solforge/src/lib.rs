@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("G45nBxWsUgxZsu9YTEt9QqHEsxtdc495xqnTR5SRwUAC");
+declare_id!("5mZkFVLzZKcKLxPT7LqjLMti2rNWN5ybYazxhsQDAoJL");
 
 #[program]
 pub mod solforge {
