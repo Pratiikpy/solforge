@@ -3,23 +3,14 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 
 export const metadata: Metadata = {
-  title: "SolForge - Autonomous Solana Program Compiler",
-  description: "Describe it. We build it. On Solana. AI-powered autonomous Solana program compilation and deployment.",
-  keywords: ["Solana", "AI", "Blockchain", "Smart Contracts", "Autonomous", "Compiler"],
+  title: "SolForge — AI-Powered Solana Program Builder",
+  description: "Describe it. We build it. On Solana. Autonomous AI agent that compiles, deploys, and verifies Solana programs.",
+  keywords: ["Solana", "AI", "Blockchain", "Smart Contracts", "Autonomous Agent", "Anchor"],
   openGraph: {
-    title: "SolForge - Autonomous Solana Program Compiler",
+    title: "SolForge — AI-Powered Solana Program Builder",
     description: "Describe it. We build it. On Solana.",
     type: "website",
-    images: ["/og-image.png"],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "SolForge - Autonomous Solana Program Compiler",
-    description: "Describe it. We build it. On Solana.",
-  },
-  icons: {
-    icon: "/favicon.ico",
-  }
 };
 
 export default function RootLayout({
@@ -29,10 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
-      </head>
-      <body className="bg-matrix min-h-screen antialiased">
+      <body className="bg-black min-h-screen antialiased bg-grid bg-orbs">
         <Navigation />
         <main className="min-h-screen">
           {children}

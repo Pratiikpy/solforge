@@ -197,42 +197,43 @@ export default function BuildPage() {
   return (
     <div className="pt-24 pb-16 px-4">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-matrix-green text-center">
-          ⚡ Build on Solana
+        <h1 className="text-4xl font-extrabold mb-2 text-white text-center">
+          Build on Solana
         </h1>
+        <p className="text-center text-gray-500 mb-8">Describe your program. AI handles the rest.</p>
 
         {/* Input Section */}
         {!isBuilding && events.length === 0 && (
           <div className="max-w-3xl mx-auto mb-12">
             <div className="glass-card p-6 mb-6">
-              <label className="block text-sm text-gray-400 mb-2">
-                Describe your Solana program:
+              <label className="block text-sm text-gray-400 mb-2 font-medium">
+                What do you want to build?
               </label>
               <textarea
                 value={spec}
                 onChange={(e) => setSpec(e.target.value)}
-                placeholder="Build a token vesting program with cliff periods..."
-                className="w-full h-32 bg-black border border-matrix-green/30 rounded px-4 py-3 text-matrix-green focus:outline-none focus:border-matrix-green resize-none"
+                placeholder="Build a token vesting program with cliff periods and linear unlock..."
+                className="w-full h-36 bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:outline-none focus:border-matrix-green/50 focus:ring-1 focus:ring-matrix-green/20 resize-none text-sm"
               />
               <button
                 onClick={startBuild}
                 disabled={!spec.trim()}
-                className="mt-4 w-full bg-matrix-green hover:bg-green-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-black font-bold px-6 py-3 rounded transition-all"
+                className="mt-4 w-full bg-matrix-green hover:bg-green-400 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed text-black font-bold px-6 py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-matrix-green/20"
               >
-                Start Build →
+                ⚡ Start Build
               </button>
             </div>
 
             <div>
-              <p className="text-sm text-gray-400 mb-3">Try these examples:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-xs text-gray-500 mb-3 uppercase tracking-wider font-medium">Quick examples</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {examplePrompts.map((prompt, i) => (
                   <button
                     key={i}
                     onClick={() => setSpec(prompt)}
-                    className="glass-card px-4 py-3 text-left text-sm hover:border-matrix-purple transition-all"
+                    className="glass-card px-4 py-3 text-left text-sm text-gray-400 hover:text-white hover:border-matrix-green/30 transition-all"
                   >
-                    {prompt}
+                    <span className="text-matrix-green mr-2">→</span>{prompt}
                   </button>
                 ))}
               </div>
