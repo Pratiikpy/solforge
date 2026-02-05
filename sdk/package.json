@@ -1,0 +1,45 @@
+{
+  "name": "@solforge/sdk",
+  "version": "0.1.0",
+  "description": "SDK for SolForge — Autonomous Program Compiler for Solana",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "solana",
+    "solforge",
+    "blockchain",
+    "compiler",
+    "ai",
+    "autonomous",
+    "agent",
+    "anchor"
+  ],
+  "author": "SolForge Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solforge/solforge.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://solforge.dev",
+  "bugs": {
+    "url": "https://github.com/solforge/solforge/issues"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
