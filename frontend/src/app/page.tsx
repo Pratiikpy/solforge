@@ -41,28 +41,11 @@ export default function Home() {
     }, 500);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terminalLines.length === 0]);
 
-  useEffect(() => {
-    // Fetch real stats from engine (or show defaults)
-    async function fetchStats() {
-      try {
-        const engineUrl = process.env.NEXT_PUBLIC_ENGINE_URL || 'http://localhost:3002';
-        const res = await fetch(`${engineUrl}/stats`, { signal: AbortSignal.timeout(3000) });
-        if (res.ok) {
-          const data = await res.json();
-          setStats({
-            builds: data.totalBuilds || 0,
-            programs: data.programsDeployed || 0,
-            sol: data.solEarned || 0,
-          });
-        }
-      } catch {
-        // Engine not reachable — keep defaults (0)
-      }
-    }
-    fetchStats();
-  }, []);
+  // Stats are hardcoded for now (no separate engine server)
+  // In production these would come from an API or on-chain data
 
   return (
     <div className="pt-24 pb-16 px-4">
